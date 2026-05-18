@@ -139,6 +139,44 @@ jobs:
               ;;
           esac
 
+      - name: Fix plugin namespaces for AGP 8.x
+        shell: bash
+        run: |
+          # Fix missing namespace in pub-cached Android plugins
+          python3 << 'PYEOF'
+          import os, re
+          # Scan all pub cache locations
+          for base in [os.path.expanduser("~/.pub-cache/hosted/pub.dev"),
+                      os.path.expanduser("~/.pub-cache/hosted/pub.flutter-io.cn"),
+                      os.path.expanduser("~/.pub-cache/git")]:
+              if not os.path.isdir(base):
+                  # For git repos, walk subdirs
+                  for root, dirs, files in os.walk(base):
+                      af = os.path.join(root, "android", "build.gradle")
+                      if os.path.exists(af):
+                          with open(af) as f: c = f.read()
+                          if "namespace" not in c:
+                              g = re.search(r"group\\s+'([^']+)'", c)
+                              ns = g.group(1) if g else os.path.basename(root).replace("-", "_")
+                              nc = re.sub(r'(android\\s*\\{*)', f'\\\\1\\n    namespace "{ns}"', c, count=1)
+                              nc = re.sub(r'compileSdkVersion\\s+3[0-3]', 'compileSdkVersion 34', nc)
+                              with open(af, 'w') as f: f.write(nc)
+                              print(f"Fixed: {af}")
+              else:
+                  for pkg in os.listdir(base):
+                      af = os.path.join(base, pkg, "android", "build.gradle")
+                      if os.path.exists(af):
+                          with open(af) as f: c = f.read()
+                          if "namespace" not in c:
+                              g = re.search(r"group\\s+'([^']+)'", c)
+                              ns = g.group(1) if g else pkg.split("-")[0]
+                              nc = re.sub(r'(android\\s*\\{)', f'\\\\1\\n    namespace "{ns}"', c, count=1)
+                              nc = re.sub(r'compileSdkVersion\\s+3[0-3]', 'compileSdkVersion 34', nc)
+                              with open(af, 'w') as f: f.write(nc)
+                              print(f"Fixed: {af}")
+          print("Namespace fix complete")
+          PYEOF
+
       - name: Build Flutter APK
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
