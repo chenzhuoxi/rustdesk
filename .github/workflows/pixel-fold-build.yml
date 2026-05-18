@@ -101,19 +101,6 @@ jobs:
           mkdir -p ./flutter/android/app/src/main/jniLibs/arm64-v8a
           cp ./target/aarch64-linux-android/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/arm64-v8a/librustdesk.so
 
-      - name: Fix Kotlin JVM target in plugins
-        run: |
-          # Kotlin 2.1.x on JDK 17 defaults to JVM 17, but AGP 7.x expects 1.8
-          find ~/.pub-cache -path "*/android/build.gradle" -type f | while read f; do
-            if grep -q "kotlin-android\|org.jetbrains.kotlin" "$f" 2>/dev/null; then
-              if ! grep -q "kotlinOptions" "$f" 2>/dev/null; then
-                sed -i '/android {/a\    kotlinOptions { jvmTarget = \"1.8\" }' "$f"
-                echo "Fixed: $f"
-              fi
-            fi
-          done
-          echo "Kotlin JVM target fix complete"
-
       - name: Build Flutter APK
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
