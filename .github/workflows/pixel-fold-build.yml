@@ -134,6 +134,9 @@ jobs:
           sed -i '/namespace "com.carriez.flutter_hbb"/d' ./flutter/android/app/build.gradle
           sed -i 's|<manifest xmlns:android="http://schemas.android.com/apk/res/android">|<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n    package="com.carriez.flutter_hbb">|' ./flutter/android/app/src/main/AndroidManifest.xml
           echo "AGP config restored for CI"
+          # Fix minSdkVersion conflicts: some plugins declare 21 but rustls needs 22
+          find ~/.pub-cache -path "*/AndroidManifest.xml" -type f -exec sed -i 's/android:minSdkVersion="21"/android:minSdkVersion="22"/g' {} \;
+          echo "minSdkVersion fix applied"
 
       - name: Build Flutter APK
         env:
