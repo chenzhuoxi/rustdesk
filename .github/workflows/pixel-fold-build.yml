@@ -1,0 +1,14 @@
+name: Pixel Fold APK Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/pixel-fold-optimization
+
+jobs:
+  build-apk:
+    uses: ./.github/workflows/flutter-build.yml
+    with:
+      upload-artifact: true
+      upload-tag: "pixel-fold"
