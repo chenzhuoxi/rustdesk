@@ -123,25 +123,17 @@ jobs:
           mkdir -p ./flutter/android/app/src/main/jniLibs/arm64-v8a
           cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/arm64-v8a/librustdesk.so
 
-      - name: Fix plugin namespaces for AGP 8.x
+      - name: Restore original AGP config for CI (Flutter 3.24.5 compatible)
         shell: bash
         run: |
-          # Fix all Android build.gradle files missing namespace
-          find ~/.pub-cache -path "*/android/build.gradle" -type f | while read f; do
-            if ! grep -q "namespace" "$f"; then
-              # Extract group name as namespace
-              ns=$(grep -oP "group\\s+'\\K[^']+" "$f" 2>/dev/null || echo "")
-              if [ -z "$ns" ]; then
-                ns=$(basename $(dirname $(dirname "$f")) | sed 's/-.*//')
-              fi
-              # Insert namespace after "android {"
-              sed -i "s/android {/android {\\n    namespace \"$ns\"/" "$f"
-              # Bump compileSdk if < 34
-              sed -i 's/compileSdkVersion 3[0-3]/compileSdkVersion 34/g' "$f"
-              echo "Fixed: $f → $ns"
-            fi
-          done
-          echo "Namespace fix complete"
+          # CI uses Flutter 3.24.5 which works with AGP 7.3.1 + Gradle 7.6.4.
+          # Our fork upgraded these for local dev with Flutter 3.38.9.
+          # Revert to original for CI compatibility.
+          sed -i 's/id "com.android.application" version "8.2.2"/id "com.android.application" version "7.3.1"/' ./flutter/android/settings.gradle
+          sed -i 's|gradle-8.5-all.zip|gradle-7.6.4-all.zip|' ./flutter/android/gradle/wrapper/gradle-wrapper.properties
+          sed -i '/namespace "com.carriez.flutter_hbb"/d' ./flutter/android/app/build.gradle
+          sed -i 's|<manifest xmlns:android="http://schemas.android.com/apk/res/android">|<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n    package="com.carriez.flutter_hbb">|' ./flutter/android/app/src/main/AndroidManifest.xml
+          echo "AGP config restored for CI"
 
       - name: Build Flutter APK
         env:
